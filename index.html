@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>이번주 시간표 & 급식</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Pretendard', sans-serif;
+            background: #f7f9fc;
+            display: flex;
+            height: 100vh;
+            color: #333;
+        }
+        .left {
+            width: 35%;
+            background: #ffffff;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.05);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        .time {
+            font-size: 1.4em;
+            font-weight: bold;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .meal {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .meal-block {
+            background: #f1f5fb;
+            border-radius: 10px;
+            padding: 10px;
+            flex: 1;
+        }
+        .meal-block h2 {
+            margin: 0;
+            font-size: 1.1em;
+            color: #0056b3;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+        .meal-block ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            font-size: 0.95em;
+        }
+        .right {
+            flex: 1;
+            padding: 20px;
+        }
+        .timetable {
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            padding: 15px;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        .timetable h2 {
+            margin: 0 0 10px;
+            font-size: 1.2em;
+            color: #333;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 0.95em;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 6px;
+            text-align: center;
+        }
+        th {
+            background: #f1f5fb;
+        }
+        .today-col {
+            background: #fff6a1;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="left">
+    <div class="time" id="current-time"></div>
+    <div class="meal">
+        <div class="meal-block">
+            <h2>아침</h2>
+            <ul id="breakfast"></ul>
+        </div>
+        <div class="meal-block">
+            <h2>점심</h2>
+            <ul id="lunch"></ul>
+        </div>
+        <div class="meal-block">
+            <h2>저녁</h2>
+            <ul id="dinner"></ul>
+        </div>
+    </div>
+</div>
+
+<div class="right">
+    <div class="timetable">
+        <h2>이번주 시간표</h2>
+        <table id="week-table">
+            <thead>
+            <tr>
+                <th>교시</th>
+                <th>월</th>
+                <th>화</th>
+                <th>수</th>
+                <th>목</th>
+                <th>금</th>
+            </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const key = "f8ee711287b04791b2f8f6fb696ee6b2";
+    const days = ["월", "화", "수", "목", "금"];
+
+    function updateTime() {
+        const now = new Date();
+        document.getElementById('current-time').textContent =
+            now.toLocaleDateString('ko-KR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'}) +
+            " " + now.toLocaleTimeString('ko-KR');
+    }
+    setInterval(updateTime, 1000);
+    updateTime();
+
+    async function getTimetableByDate(dateStr) {
+        const url = `https://open.neis.go.kr/hub/hisTimetable?ATPT_OFCDC_SC_CODE=J10&SD_SCHUL_CODE=7530560&AY=2025&ALL_TI_YMD=${dateStr}&GRADE=2&CLASS_NM=3&KEY=${key}&TYPE=json`;
+        const res = await fetch(url);
+        const data = await res.json();
+        return data["hisTimetable"]?.[1]?.row?.map(r => r.ITRT_CNTNT) || [];
+    }
+
+    async function loadWeekTimetable() {
+        const today = new Date();
+        const dayOfWeek = today.getDay(); // 0=일, 1=월...
+        const monday = new Date(today);
+        monday.setDate(today.getDate() - (dayOfWeek - 1));
+
+        const weekData = [];
+
+        for (let i = 0; i < 5; i++) {
+            const d = new Date(monday);
+            d.setDate(monday.getDate() + i);
+            const dateStr = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
+            const timetable = await getTimetableByDate(dateStr);
+            weekData.push(timetable);
+        }
+
+        const tbody = document.querySelector('#week-table tbody');
+        tbody.innerHTML = '';
+        const maxPeriods = Math.max(...weekData.map(day => day.length));
+
+        for (let period = 0; period < maxPeriods; period++) {
+            let rowHTML = `<td>${period+1}</td>`;
+            for (let day = 0; day < 5; day++) {
+                const isToday = (new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + day)).toDateString() === today.toDateString();
+                rowHTML += `<td class="${isToday ? 'today-col' : ''}">${weekData[day][period] || ''}</td>`;
+            }
+            tbody.innerHTML += `<tr>${rowHTML}</tr>`;
+        }
+    }
+
+    async function loadMeal() {
+        const today = new Date();
+        const dateStr = today.toISOString().split('T')[0];
+        const url = `https://api.밥.net/${dateStr}`;
+        try {
+            const res = await fetch(url);
+            const data = await res.json();
+            const mealData = data.data || {};
+
+            function fillMeal(mealType, elementId) {
+                const list = document.getElementById(elementId);
+                list.innerHTML = '';
+                const regular = mealData[mealType]?.regular || [];
+                const simple = mealData[mealType]?.simple || [];
+                [...regular, ...simple].forEach(item => {
+                    list.innerHTML += `<li>${item}</li>`;
+                });
+            }
+            fillMeal('breakfast', 'breakfast');
+            fillMeal('lunch', 'lunch');
+            fillMeal('dinner', 'dinner');
+        } catch(e) {
+            console.error(e);
+        }
+    }
+
+    loadWeekTimetable();
+    loadMeal();
+</script>
+</body>
+</html>
