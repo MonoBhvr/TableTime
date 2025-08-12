@@ -182,7 +182,7 @@
     async function loadMeal() {
         const today = new Date();
         const dateStr = today.toISOString().split('T')[0];
-        const url = `https://api.밥.net/${dateStr}`;
+        const url = `https://api.xn--rh3b.net/${dateStr}`;
         try {
             const res = await fetch(url);
             const data = await res.json();
