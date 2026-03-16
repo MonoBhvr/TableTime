@@ -243,12 +243,29 @@
         const mBox = document.getElementById('meal-list');
         try {
             const todayStr = new Date().toISOString().split('T')[0];
-            const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(`https://api.밥.net/${todayStr}`)}`);
-            const json = await res.json();
-            const meal = JSON.parse(json.contents).data;
+            const targetUrl = `https://api.밥.net/${todayStr}`;
+            const myProxy = "https://script.google.com/macros/s/AKfycbxmGH96ofSgfljMti9P4cm1bwmf-L3D4xil-mi1ebuCvLHFWA_Z1ybzaz2m77_qcCrk/exec";
+
+            // fetch 옵션에 mode와 redirect 설정을 추가했습니다.
+            const res = await fetch(`${myProxy}?url=${encodeURIComponent(targetUrl)}`, {
+                method: 'GET',
+                mode: 'cors', // CORS 모드 명시
+                redirect: 'follow' // 리다이렉트를 자동으로 따라가게 함
+            });
+
+            if (!res.ok) throw new Error('Network response was not ok');
+
+            const mealData = await res.json();
+            const meal = mealData.data;
+
             let html = '';
             const h = new Date().getHours();
-            const cfg = [{id:'breakfast', n:'🌅 MORNING', r:[0,9]}, {id:'lunch', n:'🍱 LUNCH', r:[9,14]}, {id:'dinner', n:'🌙 DINNER', r:[14,24]}];
+            const cfg = [
+                {id:'breakfast', n:'🌅 MORNING', r:[0,9]},
+                {id:'lunch', n:'🍱 LUNCH', r:[9,14]},
+                {id:'dinner', n:'🌙 DINNER', r:[14,24]}
+            ];
+
             if(meal) {
                 cfg.forEach(c => {
                     const info = meal[c.id];
@@ -258,9 +275,14 @@
                         html += `<div class="meal-card ${isNow ? 'active' : ''}"><h3>${c.n}</h3><p>${menu}</p></div>`;
                     }
                 });
-            } else { html = "<div class='meal-card'><p>급식 정보가 없습니다.</p></div>"; }
+            } else {
+                html = "<div class='meal-card'><p>오늘의 급식 정보가 없습니다.</p></div>";
+            }
             mBox.innerHTML = html;
-        } catch(e) { mBox.innerHTML = "급식 로드 실패"; }
+        } catch(e) {
+            console.error("Meal Load Error:", e);
+            mBox.innerHTML = "<div class='meal-card'><p>급식 로드 실패 (CORS/Proxy 확인)</p></div>";
+        }
     }
 
     init();
