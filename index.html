@@ -2,211 +2,268 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>이번주 시간표 & 급식</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3-4 Dashboard</title>
     <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+
+        :root {
+            --bg: #020617;
+            --card: #0f172a;
+            --primary: #818cf8;
+            --secondary: #f472b6;
+            --text-main: #f8fafc;
+            --text-dim: #64748b;
+            --mod-change: #fbbf24;
+            --mod-add: #10b981;
+            --mod-del: #ef4444;
+        }
+
+        * { box-sizing: border-box; }
         body {
-            margin: 0;
             font-family: 'Pretendard', sans-serif;
-            background: #f7f9fc;
-            display: flex;
-            height: 100vh;
-            color: #333;
+            background-color: var(--bg);
+            color: var(--text-main);
+            margin: 0; padding: 20px;
+            height: 100vh; display: flex; flex-direction: column;
+            overflow: hidden;
         }
-        .left {
-            width: 35%;
-            background: #ffffff;
-            box-shadow: 2px 0 10px rgba(0,0,0,0.05);
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
+
+        header {
+            display: flex; justify-content: space-between; align-items: flex-end;
+            padding: 0 10px 20px 10px; border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 20px; position: relative;
         }
-        .time {
-            font-size: 1.4em;
-            font-weight: bold;
-            margin-bottom: 20px;
-            text-align: center;
+        .header-left h1 { margin: 0; font-size: 2.2rem; font-weight: 900; background: linear-gradient(to right, var(--primary), var(--secondary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .header-right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; }
+
+        #fs-btn {
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+            color: white; padding: 5px 12px; border-radius: 8px; cursor: pointer;
+            font-size: 0.8rem; margin-bottom: 10px; transition: 0.3s;
         }
-        .meal {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
+        #fs-btn:hover { background: var(--primary); }
+
+        #clock { font-size: 3.5rem; font-weight: 800; line-height: 1; color: var(--text-main); letter-spacing: -2px; }
+        #d-day { font-size: 1.5rem; font-weight: 700; color: var(--secondary); margin-top: 5px; }
+
+        .main-wrapper {
+            display: grid; grid-template-columns: 2.5fr 1.2fr;
+            gap: 20px; flex: 1; min-height: 0;
         }
-        .meal-block {
-            background: #f1f5fb;
-            border-radius: 10px;
-            padding: 10px;
-            flex: 1;
+
+        .section {
+            background: var(--card); border-radius: 32px; padding: 30px;
+            display: flex; flex-direction: column;
+            border: 1px solid rgba(255,255,255,0.05);
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
         }
-        .meal-block h2 {
-            margin: 0;
-            font-size: 1.1em;
-            color: #0056b3;
-            border-bottom: 1px solid #ddd;
-            padding-bottom: 5px;
+
+        h2 { font-size: 1.6rem; margin-top: 0; margin-bottom: 25px; color: var(--primary); }
+
+        .weekly-board { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; flex: 1; }
+        .day-column {
+            background: rgba(255,255,255,0.02); border-radius: 24px;
+            padding: 12px; display: flex; flex-direction: column; gap: 8px;
+            transition: 0.3s; border: 1px solid rgba(255,255,255,0.03);
         }
-        .meal-block ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            font-size: 0.95em;
+        .day-column.today { background: rgba(129, 140, 248, 0.1); border: 2px solid var(--primary); transform: scale(1.02); }
+        .day-header { text-align: center; font-weight: 800; padding: 10px 0; font-size: 1.1rem; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 5px; }
+
+        .slot {
+            flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center;
+            border-radius: 16px; background: rgba(255,255,255,0.03);
+            position: relative; text-align: center; border: 1px solid transparent; padding: 4px;
         }
-        .right {
-            flex: 1;
-            padding: 20px;
+        .slot .p-num { position: absolute; top: 5px; left: 8px; font-size: 0.7rem; color: var(--text-dim); }
+        .slot .sub-name { font-size: 0.95rem; font-weight: 700; line-height: 1.2; }
+        .slot .teacher-name { font-size: 0.75rem; color: var(--text-dim); margin-top: 2px; }
+
+        .st-changed { border-color: var(--mod-change); background: rgba(251, 191, 36, 0.05); color: var(--mod-change); }
+        .st-added { border-color: var(--mod-add); background: rgba(16, 185, 129, 0.05); color: var(--mod-add); }
+        .st-deleted { border-color: var(--mod-del); background: rgba(239, 68, 68, 0.05); opacity: 0.6; }
+        .old-badge { font-size: 0.7rem; text-decoration: line-through; opacity: 0.5; display: block; margin-top: 1px; }
+
+        .meal-list { display: flex; flex-direction: column; gap: 15px; flex: 1; }
+        .meal-card {
+            flex: 1; padding: 25px; border-radius: 24px; background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.05); display: flex; flex-direction: column; justify-content: center;
         }
-        .timetable {
-            background: #ffffff;
-            border-radius: 10px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            padding: 15px;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
+        .meal-card.active {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border: none; transform: scale(1.03); box-shadow: 0 15px 30px rgba(0,0,0,0.4);
         }
-        .timetable h2 {
-            margin: 0 0 10px;
-            font-size: 1.2em;
-            color: #333;
-            border-bottom: 1px solid #ddd;
-            padding-bottom: 5px;
-        }
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            font-size: 0.95em;
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 6px;
-            text-align: center;
-        }
-        th {
-            background: #f1f5fb;
-        }
-        .today-col {
-            background: #fff6a1;
-            font-weight: bold;
+        .meal-card h3 { margin: 0 0 10px 0; font-size: 1.5rem; font-weight: 800; }
+        .meal-card p { margin: 0; line-height: 1.6; font-size: 1.15rem; font-weight: 500; word-break: keep-all; }
+
+        @media (max-width: 1200px) {
+            .main-wrapper { grid-template-columns: 1fr; }
+            body { height: auto; overflow: visible; }
+            #clock { font-size: 2.5rem; }
         }
     </style>
 </head>
 <body>
 
-<div class="left">
-    <div class="time" id="current-time"></div>
-    <div class="meal">
-        <div class="meal-block">
-            <h2>아침</h2>
-            <ul id="breakfast"></ul>
-        </div>
-        <div class="meal-block">
-            <h2>점심</h2>
-            <ul id="lunch"></ul>
-        </div>
-        <div class="meal-block">
-            <h2>저녁</h2>
-            <ul id="dinner"></ul>
-        </div>
+<header>
+    <div class="header-left">
+        <h1>3-4 DASHBOARD</h1>
+        <div id="d-day">Loading D-Day...</div>
     </div>
-</div>
+    <div class="header-right">
+        <button id="fs-btn" onclick="toggleFullScreen()">전체 화면</button>
+        <div id="clock">00:00:00</div>
+    </div>
+</header>
 
-<div class="right">
-    <div class="timetable">
-        <h2>이번주 시간표</h2>
-        <table id="week-table">
-            <thead>
-            <tr>
-                <th>교시</th>
-                <th>월</th>
-                <th>화</th>
-                <th>수</th>
-                <th>목</th>
-                <th>금</th>
-            </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
+<div class="main-wrapper">
+    <div class="section">
+        <h2>📅 Weekly Timetable</h2>
+        <div class="weekly-board" id="weekly-board"></div>
+    </div>
+
+    <div class="section">
+        <h2>🍴 Today's Menu</h2>
+        <div class="meal-list" id="meal-list"></div>
     </div>
 </div>
 
 <script>
-    const key = "f8ee711287b04791b2f8f6fb696ee6b2";
-    const days = ["월", "화", "수", "목", "금"];
+    const NEIS_KEY = "f8ee711287b04791b2f8f6fb696ee6b2";
+    const ORIG_TT = [
+        ["커뮤니케이션 문학", "공업 일반", "탐색적 데이터 분석", "진로활동", "인공지능 모델 준비", "인공지능 모델 준비", "자율활동"],
+        ["탐색적 데이터 분석", "프로그래밍 언어 활용", "비즈니스 영어", "공업 일반", "커뮤니케이션 문학", "개념데이터 모델링", "공업수학"],
+        ["공업수학", "개념데이터 모델링", "탐색적 데이터 분석", "비즈니스 영어", "프로그래밍 언어 활용", "동아리활동", ""],
+        ["공업 일반", "비즈니스 영어", "비즈니스 영어", "프로그래밍 언어 활용", "공업수학", "개념데이터 모델링", ""],
+        ["커뮤니케이션 문학", "개념데이터 모델링", "비즈니스 영어", "프로그래밍 언어 활용", "인공지능 모델 준비", "공업수학", "탐색적 데이터 분석"]
+    ];
 
-    function updateTime() {
+    const ALIAS = { "탐색적 데이터 분석": "빅데이터", "개념데이터 모델링": "DB", "프로그래밍 언어 활용": "응용 프로그램 개발", "인공지능 모델 준비": "인공지능 모델링" };
+
+    function toggleFullScreen() {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen();
+            document.getElementById('fs-btn').innerText = "전체 화면 해제";
+        } else {
+            if (document.exitFullscreen) { document.exitFullscreen(); document.getElementById('fs-btn').innerText = "전체 화면"; }
+        }
+    }
+
+    function norm(t) { return t ? t.replace(/[^가-힣a-zA-Z0-9]/g, '') : ""; }
+    function fix(t) {
+        let n = norm(t);
+        for(let k in ALIAS) { if(n.includes(norm(k))) return ALIAS[k]; }
+        return t;
+    }
+
+    function updateHeader() {
         const now = new Date();
-        document.getElementById('current-time').textContent =
-            now.toLocaleDateString('ko-KR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'}) +
-            " " + now.toLocaleTimeString('ko-KR');
-    }
-    setInterval(updateTime, 1000);
-    updateTime();
-
-    async function getTimetableByDate(dateStr) {
-        const url = `https://open.neis.go.kr/hub/hisTimetable?ATPT_OFCDC_SC_CODE=J10&SD_SCHUL_CODE=7530560&AY=2025&ALL_TI_YMD=${dateStr}&GRADE=2&CLASS_NM=3&KEY=${key}&TYPE=json`;
-        const res = await fetch(url);
-        const data = await res.json();
-        return data["hisTimetable"]?.[1]?.row?.map(r => r.ITRT_CNTNT) || [];
+        document.getElementById('clock').innerText = now.toTimeString().split(' ')[0];
+        const target = new Date("2026-11-19T00:00:00");
+        const diff = Math.ceil((target - now) / (1000 * 60 * 60 * 24));
+        document.getElementById('d-day').innerText = `2027학년도 수능까지 D-${diff}`;
     }
 
-    async function loadWeekTimetable() {
-        const today = new Date();
-        const dayOfWeek = today.getDay(); // 0=일, 1=월...
-        const monday = new Date(today);
-        monday.setDate(today.getDate() - (dayOfWeek - 1));
+    async function init() {
+        const now = new Date();
+        const tIdx = now.getDay() - 1;
+        const board = document.getElementById('weekly-board');
+        const days = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
+        const monday = new Date(now);
+        monday.setDate(now.getDate() - (now.getDay() === 0 ? 6 : now.getDay() - 1));
 
-        const weekData = [];
-
-        for (let i = 0; i < 5; i++) {
+        for(let i=0; i<5; i++) {
+            const col = document.createElement('div');
+            col.className = `day-column ${i === tIdx ? 'today' : ''}`;
             const d = new Date(monday);
             d.setDate(monday.getDate() + i);
-            const dateStr = `${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`;
-            const timetable = await getTimetableByDate(dateStr);
-            weekData.push(timetable);
+            const ymd = d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
+            col.innerHTML = `<div class="day-header">${days[i]} ${d.getMonth()+1}/${d.getDate()}</div><div id="day-box-${i}" style="flex:1; display:flex; flex-direction:column; gap:8px;"></div>`;
+            board.appendChild(col);
+            loadDay(i, ymd);
         }
-
-        const tbody = document.querySelector('#week-table tbody');
-        tbody.innerHTML = '';
-        const maxPeriods = Math.max(...weekData.map(day => day.length));
-
-        for (let period = 0; period < maxPeriods; period++) {
-            let rowHTML = `<td>${period+1}</td>`;
-            for (let day = 0; day < 5; day++) {
-                const isToday = (new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + day)).toDateString() === today.toDateString();
-                rowHTML += `<td class="${isToday ? 'today-col' : ''}">${weekData[day][period] || ''}</td>`;
-            }
-            tbody.innerHTML += `<tr>${rowHTML}</tr>`;
-        }
+        loadMeal();
+        setInterval(updateHeader, 1000);
+        updateHeader();
     }
 
-    async function loadMeal() {
-        const today = new Date();
-        const dateStr = today.toISOString().split('T')[0];
-        const url = `https://api.xn--rh3b.net/${dateStr}`;
+    async function loadDay(idx, ymd) {
+        const box = document.getElementById(`day-box-${idx}`);
         try {
-            const res = await fetch(url);
+            const res = await fetch(`https://open.neis.go.kr/hub/hisTimetable?ATPT_OFCDC_SC_CODE=J10&SD_SCHUL_CODE=7530560&AY=2026&ALL_TI_YMD=${ymd}&GRADE=3&CLASS_NM=4&KEY=${NEIS_KEY}&TYPE=json`);
             const data = await res.json();
-            const mealData = data.data || {};
 
-            function fillMeal(mealType, elementId) {
-                const list = document.getElementById(elementId);
-                list.innerHTML = '';
-                const regular = mealData[mealType]?.regular || [];
-                const simple = mealData[mealType]?.simple || [];
-                [...regular, ...simple].forEach(item => {
-                    list.innerHTML += `<li>${item}</li>`;
-                });
+            // 데이터 구조 확인을 위한 콘솔 로그 (개발자 도구 F12에서 확인 가능)
+            console.log(`${ymd} 데이터:`, data);
+
+            const apiRows = data.hisTimetable ? data.hisTimetable[1].row : [];
+
+            let html = '';
+            for(let p=0; p<7; p++) {
+                const row = apiRows[p] || {};
+                const curr = row.ITRT_CNTNT || "";
+
+                // NEIS API에서 교사명을 주는 변수명들 확인 (TR_NM이 표준)
+                const teacher = row.TR_NM || row.TEACHER_NM || "";
+
+                const orig = ORIG_TT[idx][p] || "";
+
+                let stateClass = "";
+                let diffHtml = "";
+                const nCurr = norm(curr);
+                const nOrig = norm(orig);
+
+                if (nCurr !== nOrig) {
+                    if (nOrig === "" && nCurr !== "") stateClass = "st-added";
+                    else if (nCurr === "" && nOrig !== "") stateClass = "st-deleted";
+                    else if (nCurr !== "" && nOrig !== "") stateClass = "st-changed";
+                    if (nOrig !== "") diffHtml = `<span class="old-badge">${fix(orig)}</span>`;
+                }
+
+                // 교사명이 있을 때만 렌더링, 없으면 공간 차지 안 함
+                const teacherHtml = (teacher && teacher.trim() !== "")
+                    ? `<div class="teacher-name" style="color: #a5b4fc; font-size: 0.75rem; margin-top: 4px; font-weight: 500;">👤 ${teacher}</div>`
+                    : "";
+
+                html += `
+                    <div class="slot ${stateClass}">
+                        <span class="p-num">${p+1}</span>
+                        <div class="sub-name" style="font-size: 1rem; font-weight: 700;">${fix(curr) || "자습/공강"}</div>
+                        ${teacherHtml}
+                        ${diffHtml}
+                    </div>`;
             }
-            fillMeal('breakfast', 'breakfast');
-            fillMeal('lunch', 'lunch');
-            fillMeal('dinner', 'dinner');
+            box.innerHTML = html;
         } catch(e) {
             console.error(e);
+            box.innerHTML = "<div class='slot'>Error</div>";
         }
     }
+    async function loadMeal() {
+        const mBox = document.getElementById('meal-list');
+        try {
+            const todayStr = new Date().toISOString().split('T')[0];
+            const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(`https://api.밥.net/${todayStr}`)}`);
+            const json = await res.json();
+            const meal = JSON.parse(json.contents).data;
+            let html = '';
+            const h = new Date().getHours();
+            const cfg = [{id:'breakfast', n:'🌅 MORNING', r:[0,9]}, {id:'lunch', n:'🍱 LUNCH', r:[9,14]}, {id:'dinner', n:'🌙 DINNER', r:[14,24]}];
+            if(meal) {
+                cfg.forEach(c => {
+                    const info = meal[c.id];
+                    if(info) {
+                        const isNow = h >= c.r[0] && h < c.r[1];
+                        const menu = [...(info.regular||[]), ...(info.simple||[])].join(', ');
+                        html += `<div class="meal-card ${isNow ? 'active' : ''}"><h3>${c.n}</h3><p>${menu}</p></div>`;
+                    }
+                });
+            } else { html = "<div class='meal-card'><p>급식 정보가 없습니다.</p></div>"; }
+            mBox.innerHTML = html;
+        } catch(e) { mBox.innerHTML = "급식 로드 실패"; }
+    }
 
-    loadWeekTimetable();
-    loadMeal();
+    init();
 </script>
 </body>
 </html>
